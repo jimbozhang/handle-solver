@@ -15,7 +15,8 @@ class Solver:
                 part_name = ['c', 'v', 't'][part_id]
                 label, score = part_data
                 if score == 0:
-                    self.condition_strings.append(' AND '.join([f"{part_name}{k} != '{label}'" for k in range(1, 5)]))
+                    r = [i] if part_name == 't' else range(1, 5)
+                    self.condition_strings.append(' AND '.join([f"{part_name}{k} != '{label}'" for k in r]))
                 elif score == 1:
                     self.condition_strings.append(f"{part_name}{i} != '{label}'")
                     self.condition_strings.append(
