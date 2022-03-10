@@ -18,15 +18,15 @@ class PinyinParser:
     
     def split_vt(self, v):
         if 'ā' in v or 'ē' in v or 'ī' in v or 'ō' in v or 'ū' in v or 'ǖ' in v:
-            t = 1
+            t = '1'
         elif 'á' in v or 'é' in v or 'í' in v or 'ó' in v or 'ú' in v or 'ǘ' in v:
-            t = 2
+            t = '2'
         elif 'ǎ' in v or 'ě' in v or 'ǐ' in v or 'ǒ' in v or 'ǔ' in v or 'ǚ' in v:
-            t = 3
+            t = '3'
         elif 'à' in v or 'è' in v or 'ì' in v or 'ò' in v or 'ù' in v or 'ǜ' in v:
-            t = 4
+            t = '4'
         else:
-            t = 0
+            t = '0'
         
         v = re.sub(r'[āáǎà]', 'a', v)
         v = re.sub(r'[ēéěè]', 'e', v)
