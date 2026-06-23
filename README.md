@@ -4,6 +4,6 @@
 
 **[本工具 (jimbozhang.github.io/handle-solver)](https://jimbozhang.github.io/handle-solver/)** 自动筛选候选词，帮你更快解题。
 
-![screenshot](screenshot.png)
+![screenshot](screenshot.png?v=2)
 
 词库来自 [pwxcoo/chinese-xinhua](https://github.com/pwxcoo/chinese-xinhua)，已修正部分标注错误。
