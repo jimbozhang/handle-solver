@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>汉兜解题工具</title>
+<style>
+:root {
+  --gray: #787c7e;
+  --yellow: #c9b458;
+  --green: #6aaa64;
+  --bg: #fafafa;
+  --card: #fff;
+  --border: #e0e0e0;
+  --text: #1a1a1a;
+  --text2: #666;
+  --text3: #999;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  max-width: 480px; margin: 0 auto; padding: 20px 16px 40px;
+  background: var(--bg); color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Header */
+header { text-align: center; padding: 12px 0 20px; }
+header h1 { font-size: 1.5em; font-weight: 700; letter-spacing: 0.02em; }
+header p {
+  margin-top: 6px; font-size: 0.88em; color: var(--text2); line-height: 1.5;
+}
+header a { color: var(--green); text-decoration: none; font-weight: 600; }
+header a:hover { text-decoration: underline; }
+
+/* Card */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+}
+
+/* Input */
+.input-row { display: flex; gap: 8px; }
+.input-row input {
+  flex: 1; font-size: 1.15em; padding: 10px 14px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  text-align: center; letter-spacing: 0.25em; color: var(--text);
+  background: var(--card); transition: border-color 0.2s;
+}
+.input-row input:focus { border-color: var(--green); outline: none; }
+.input-row input::placeholder { letter-spacing: 0.05em; color: var(--text3); }
+.input-row button {
+  padding: 10px 20px; font-size: 0.95em; font-weight: 600;
+  border: none; border-radius: 8px; cursor: pointer;
+  background: var(--text); color: #fff; transition: opacity 0.15s;
+}
+.input-row button:hover { opacity: 0.8; }
+
+/* Pinyin grid */
+.pinyin-grid { display: none; }
+.pinyin-grid.active { display: block; }
+
+.pinyin-table { width: 100%; border-collapse: separate; border-spacing: 4px; }
+.pinyin-table td { text-align: center; }
+.pinyin-table .label {
+  font-size: 0.78em; color: var(--text3); width: 2.8em;
+  padding-right: 4px; text-align: right; vertical-align: middle;
+}
+
+.color-btn {
+  display: block; width: 100%; padding: 9px 2px;
+  border: 2px solid transparent; border-radius: 6px;
+  font-size: 0.9em; font-weight: 500; cursor: pointer;
+  user-select: none; transition: all 0.15s;
+  color: #fff; font-family: inherit;
+}
+.color-btn:hover { transform: scale(1.05); }
+.color-0 { background: var(--gray); border-color: var(--gray); }
+.color-1 { background: var(--yellow); border-color: var(--yellow); }
+.color-2 { background: var(--green); border-color: var(--green); }
+
+.char-row td { padding-top: 6px; }
+.char-row .color-btn {
+  font-size: 1.25em; font-weight: 700; cursor: default;
+  border: 2px solid rgba(0,0,0,0.08);
+}
+
+.submit-row { text-align: center; margin-top: 14px; }
+.submit-row button {
+  padding: 10px 28px; font-size: 0.95em; font-weight: 600;
+  border: none; border-radius: 8px; cursor: pointer;
+  background: var(--green); color: #fff; transition: opacity 0.15s;
+}
+.submit-row button:hover { opacity: 0.85; }
+
+/* Results */
+.results .count {
+  font-size: 0.85em; color: var(--text3); margin-bottom: 8px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.results .words { font-size: 1.05em; line-height: 1.9; color: var(--text); word-break: break-all; }
+
+/* History */
+.history-title {
+  font-size: 0.8em; color: var(--text3); margin: 16px 0 8px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.history-item {
+  display: flex; gap: 8px; align-items: center;
+  padding: 6px 0; font-size: 0.9em;
+}
+.history-word { font-weight: 600; min-width: 3.5em; }
+.history-colors { display: flex; gap: 3px; }
+.history-dot {
+  width: 20px; height: 20px; border-radius: 4px;
+  display: inline-block; border: 1px solid rgba(0,0,0,0.06);
+}
+.dot-0 { background: var(--gray); }
+.dot-1 { background: var(--yellow); }
+.dot-2 { background: var(--green); }
+
+/* Footer */
+footer {
+  text-align: center; margin-top: 28px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 0.78em; color: var(--text3); line-height: 1.8;
+}
+footer a { color: var(--text2); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>汉兜解题工具</h1>
+  <p>帮你在 <a href="https://handle.antfu.me/" target="_blank">汉兜</a> 中更快找到答案</p>
+</header>
+
+<div class="card">
+  <div class="input-row">
+    <input id="wordInput" type="text" placeholder="输入你猜的成语" maxlength="4">
+    <button onclick="showPinyin()">确定</button>
+  </div>
+</div>
+
+<div id="pinyinGrid" class="pinyin-grid">
+  <div class="card">
+    <table class="pinyin-table">
+      <tr id="crow"></tr>
+      <tr id="vrow"></tr>
+      <tr id="trow"></tr>
+      <tr id="charrow" class="char-row"></tr>
+    </table>
+    <div class="submit-row">
+      <button onclick="submitFeedback()">筛选候选词</button>
+    </div>
+  </div>
+</div>
+
+<div id="resultsCard" class="card results" style="display:none">
+  <div id="resultCount" class="count"></div>
+  <div id="resultWords" class="words"></div>
+</div>
+
+<div id="historySection"></div>
+
+<footer>
+  <a href="https://handle.antfu.me/" target="_blank">去玩汉兜</a> ·
+  <a href="https://github.com/jimbozhang/handle-solver">GitHub</a> ·
+  词库来自 <a href="https://github.com/pwxcoo/chinese-xinhua">chinese-xinhua</a>
+</footer>
+
+<script src="data.js"></script>
+<script>
+let idioms = [];
+let conditions = [];
+let historyList = [];
+
+function loadData() {
+  idioms = IDIOMS;
+}
+
+function showPinyin() {
+  const input = document.getElementById('wordInput');
+  const word = input.value.trim();
+  if (word.length !== 4) return;
+
+  const entry = idioms.find(e => e[0] === word);
+  if (!entry) {
+    const card = document.getElementById('resultsCard');
+    card.style.display = '';
+    document.getElementById('resultCount').textContent = '';
+    document.getElementById('resultWords').textContent = `「${word}」不在词库中`;
+    return;
+  }
+
+  const grid = document.getElementById('pinyinGrid');
+  grid.classList.add('active');
+
+  const labels = ['声母', '韵母', '声调'];
+  const rows = [document.getElementById('crow'), document.getElementById('vrow'), document.getElementById('trow')];
+  const charRow = document.getElementById('charrow');
+
+  rows.forEach((r, i) => {
+    r.innerHTML = `<td class="label">${labels[i]}</td>`;
+  });
+  charRow.innerHTML = '<td class="label">汉字</td>';
+
+  for (let i = 0; i < 4; i++) {
+    const base = 1 + i * 3;
+    for (let j = 0; j < 3; j++) {
+      const val = entry[base + j] || '·';
+      const td = document.createElement('td');
+      td.innerHTML = `<div class="color-btn color-0" data-idx="${i * 3 + j}" data-score="0" onclick="cycleColor(this)">${val}</div>`;
+      rows[j].appendChild(td);
+    }
+    const td = document.createElement('td');
+    td.innerHTML = `<div class="color-btn color-0" style="pointer-events:none">${word[i]}</div>`;
+    charRow.appendChild(td);
+  }
+}
+
+function cycleColor(btn) {
+  let score = parseInt(btn.dataset.score);
+  score = (score + 1) % 3;
+  btn.dataset.score = score;
+  btn.className = 'color-btn color-' + score;
+  updateCharColors();
+}
+
+function updateCharColors() {
+  const btns = document.querySelectorAll('#crow .color-btn, #vrow .color-btn, #trow .color-btn');
+  const scores = {};
+  btns.forEach(b => {
+    const idx = parseInt(b.dataset.idx);
+    const charIdx = Math.floor(idx / 3);
+    if (!scores[charIdx]) scores[charIdx] = [];
+    scores[charIdx].push(parseInt(b.dataset.score));
+  });
+  const charBtns = document.querySelectorAll('#charrow .color-btn');
+  charBtns.forEach((b, i) => {
+    const s = scores[i] || [0, 0, 0];
+    let cls;
+    if (s.every(v => v === 2)) cls = 2;
+    else if (s.some(v => v >= 1)) cls = 1;
+    else cls = 0;
+    b.className = `color-btn color-${cls}`;
+  });
+}
+
+function submitFeedback() {
+  const word = document.getElementById('wordInput').value.trim();
+  if (word.length !== 4) return;
+
+  const entry = idioms.find(e => e[0] === word);
+  if (!entry) return;
+
+  const feedback = [];
+  for (let i = 0; i < 4; i++) {
+    const group = [];
+    for (let j = 0; j < 3; j++) {
+      const btn = document.querySelector(`[data-idx="${i * 3 + j}"]`);
+      group.push(parseInt(btn.dataset.score));
+    }
+    feedback.push(group);
+  }
+
+  const partNames = ['c', 'v', 't'];
+  for (let i = 0; i < 4; i++) {
+    const base = 1 + i * 3;
+    for (let j = 0; j < 3; j++) {
+      const label = entry[base + j];
+      const score = feedback[i][j];
+      const pn = partNames[j];
+      const pos = i + 1;
+
+      if (score === 0) {
+        if (pn === 't') {
+          conditions.push(`${pn}${pos} != '${label}'`);
+        } else {
+          conditions.push([1,2,3,4].map(k => `${pn}${k} != '${label}'`).join(' AND '));
+        }
+      } else if (score === 1) {
+        conditions.push(`${pn}${pos} != '${label}'`);
+        conditions.push('(' + [1,2,3,4].filter(k => k !== pos).map(k => `${pn}${k} = '${label}'`).join(' OR ') + ')');
+      } else if (score === 2) {
+        conditions.push(`${pn}${pos} = '${label}'`);
+      }
+    }
+  }
+
+  const colorScores = feedback.flat();
+  historyList.push({ word, scores: colorScores });
+  renderHistory();
+  filterCandidates();
+}
+
+function filterCandidates() {
+  const results = idioms.filter(entry => {
+    return conditions.every(cond => {
+      if (cond.startsWith('(')) {
+        const inner = cond.slice(1, -1);
+        return inner.split(' OR ').some(c => evalCondition(entry, c.trim()));
+      }
+      if (cond.includes(' AND ')) {
+        return cond.split(' AND ').every(c => evalCondition(entry, c.trim()));
+      }
+      return evalCondition(entry, cond);
+    });
+  });
+
+  const words = results.map(e => e[0]);
+  document.getElementById('resultsCard').style.display = '';
+  document.getElementById('resultCount').textContent = `${words.length} 个候选词`;
+  if (words.length === 0) {
+    document.getElementById('resultWords').innerHTML = '<span class="hint">没有匹配的成语，请检查反馈</span>';
+  } else if (words.length <= 100) {
+    document.getElementById('resultWords').textContent = words.join('、');
+  } else {
+    document.getElementById('resultWords').textContent = words.slice(0, 100).join('、') + ` …等 ${words.length} 个`;
+  }
+
+  document.getElementById('pinyinGrid').classList.remove('active');
+  document.getElementById('wordInput').value = '';
+}
+
+function evalCondition(entry, cond) {
+  const m = cond.match(/^([cvt])(\d)\s*(!?=)\s*'(.+)'$/);
+  if (!m) return true;
+  const [, pn, pos, op, val] = m;
+  const idx = {c: 0, v: 1, t: 2}[pn] + (parseInt(pos) - 1) * 3 + 1;
+  const entryVal = entry[idx];
+  if (op === '=') return entryVal === val;
+  return entryVal !== val;
+}
+
+function renderHistory() {
+  const el = document.getElementById('historySection');
+  el.innerHTML = '<div class="history-title">猜测记录</div>' +
+    historyList.map(h => {
+      const dots = h.scores.map(s => `<span class="history-dot dot-${s}"></span>`).join('');
+      return `<div class="history-item"><span class="history-word">${h.word}</span><span class="history-colors">${dots}</span></div>`;
+    }).join('');
+}
+
+document.getElementById('wordInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') showPinyin();
+});
+
+loadData();
+</script>
+</body>
+</html>
