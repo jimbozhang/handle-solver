@@ -278,11 +278,7 @@ function submitFeedback() {
       const pos = i + 1;
 
       if (score === 0) {
-        if (pn === 't') {
-          conditions.push(`${pn}${pos} != '${label}'`);
-        } else {
-          conditions.push([1,2,3,4].map(k => `${pn}${k} != '${label}'`).join(' AND '));
-        }
+        conditions.push(`${pn}${pos} != '${label}'`);
       } else if (score === 1) {
         conditions.push(`${pn}${pos} != '${label}'`);
         conditions.push('(' + [1,2,3,4].filter(k => k !== pos).map(k => `${pn}${k} = '${label}'`).join(' OR ') + ')');
