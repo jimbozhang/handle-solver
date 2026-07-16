@@ -63,17 +63,20 @@ header a:hover { text-decoration: underline; }
 .pinyin-grid { display: none; }
 .pinyin-grid.active { display: block; }
 
-.pinyin-table { width: 100%; border-collapse: separate; border-spacing: 4px; }
-.pinyin-table td { text-align: center; }
-.pinyin-table .label {
-  font-size: 0.78em; color: var(--text3); width: 2.8em;
-  padding-right: 4px; text-align: right; vertical-align: middle;
+.pinyin-grid .card { display: flex; flex-direction: column; align-items: center; }
+
+.pinyin-matrix {
+  display: grid;
+  grid-template-columns: repeat(4, 3em);
+  gap: 5px;
+  justify-items: center;
 }
 
 .color-btn {
-  display: block; width: 100%; padding: 9px 2px;
+  width: 3em; aspect-ratio: 1; display: flex;
+  align-items: center; justify-content: center; padding: 0;
   border: 2px solid transparent; border-radius: 6px;
-  font-size: 0.9em; font-weight: 500; cursor: pointer;
+  font-size: 1em; font-weight: 500; cursor: pointer;
   user-select: none; transition: all 0.15s;
   color: #fff; font-family: inherit;
 }
@@ -81,12 +84,6 @@ header a:hover { text-decoration: underline; }
 .color-0 { background: var(--gray); border-color: var(--gray); }
 .color-1 { background: var(--yellow); border-color: var(--yellow); }
 .color-2 { background: var(--green); border-color: var(--green); }
-
-.char-row td { padding-top: 6px; }
-.char-row .color-btn {
-  font-size: 1.25em; font-weight: 700; cursor: default;
-  border: 2px solid rgba(0,0,0,0.08);
-}
 
 .submit-row { text-align: center; margin-top: 14px; }
 .submit-row button {
@@ -139,7 +136,7 @@ footer a:hover { text-decoration: underline; }
   <p>帮你在 <a href="https://handle.antfu.me/" target="_blank">汉兜</a> 中更快找到答案</p>
 </header>
 
-<div class="card">
+<div id="inputCard" class="card">
   <div class="input-row">
     <input id="wordInput" type="text" placeholder="输入你猜的成语" maxlength="4">
     <button onclick="showPinyin()">确定</button>
@@ -148,12 +145,7 @@ footer a:hover { text-decoration: underline; }
 
 <div id="pinyinGrid" class="pinyin-grid">
   <div class="card">
-    <table class="pinyin-table">
-      <tr id="crow"></tr>
-      <tr id="vrow"></tr>
-      <tr id="trow"></tr>
-      <tr id="charrow" class="char-row"></tr>
-    </table>
+    <div id="pinyinMatrix" class="pinyin-matrix"></div>
     <div class="submit-row">
       <button onclick="submitFeedback()">筛选候选词</button>
     </div>
@@ -197,29 +189,34 @@ function showPinyin() {
     return;
   }
 
+  document.getElementById('inputCard').style.display = 'none';
+  document.getElementById('resultsCard').style.display = 'none';
   const grid = document.getElementById('pinyinGrid');
   grid.classList.add('active');
 
-  const labels = ['声母', '韵母', '声调'];
-  const rows = [document.getElementById('crow'), document.getElementById('vrow'), document.getElementById('trow')];
-  const charRow = document.getElementById('charrow');
+  const matrix = document.getElementById('pinyinMatrix');
+  matrix.innerHTML = '';
 
-  rows.forEach((r, i) => {
-    r.innerHTML = `<td class="label">${labels[i]}</td>`;
-  });
-  charRow.innerHTML = '<td class="label">汉字</td>';
-
-  for (let i = 0; i < 4; i++) {
-    const base = 1 + i * 3;
-    for (let j = 0; j < 3; j++) {
-      const val = entry[base + j] || '·';
-      const td = document.createElement('td');
-      td.innerHTML = `<div class="color-btn color-0" data-idx="${i * 3 + j}" data-score="0" onclick="cycleColor(this)">${val}</div>`;
-      rows[j].appendChild(td);
+  for (let r = 0; r < 4; r++) {
+    for (let i = 0; i < 4; i++) {
+      const btn = document.createElement('div');
+      if (r < 3) {
+        const base = 1 + i * 3;
+        const val = entry[base + r] || '·';
+        btn.className = 'color-btn color-0';
+        btn.dataset.idx = i * 3 + r;
+        btn.dataset.score = '0';
+        btn.textContent = val;
+        btn.onclick = function() { cycleColor(this); };
+      } else {
+        btn.className = 'color-btn color-0';
+        btn.dataset.charIdx = i;
+        btn.dataset.charScore = '0';
+        btn.textContent = word[i];
+        btn.onclick = function() { cycleCharColor(this); };
+      }
+      matrix.appendChild(btn);
     }
-    const td = document.createElement('td');
-    td.innerHTML = `<div class="color-btn color-0" style="pointer-events:none">${word[i]}</div>`;
-    charRow.appendChild(td);
   }
 }
 
@@ -228,27 +225,22 @@ function cycleColor(btn) {
   score = (score + 1) % 3;
   btn.dataset.score = score;
   btn.className = 'color-btn color-' + score;
-  updateCharColors();
 }
 
-function updateCharColors() {
-  const btns = document.querySelectorAll('#crow .color-btn, #vrow .color-btn, #trow .color-btn');
-  const scores = {};
-  btns.forEach(b => {
-    const idx = parseInt(b.dataset.idx);
-    const charIdx = Math.floor(idx / 3);
-    if (!scores[charIdx]) scores[charIdx] = [];
-    scores[charIdx].push(parseInt(b.dataset.score));
-  });
-  const charBtns = document.querySelectorAll('#charrow .color-btn');
-  charBtns.forEach((b, i) => {
-    const s = scores[i] || [0, 0, 0];
-    let cls;
-    if (s.every(v => v === 2)) cls = 2;
-    else if (s.some(v => v >= 1)) cls = 1;
-    else cls = 0;
-    b.className = `color-btn color-${cls}`;
-  });
+function cycleCharColor(btn) {
+  let score = parseInt(btn.dataset.charScore);
+  score = (score + 1) % 3;
+  btn.dataset.charScore = score;
+  btn.className = 'color-btn color-' + score;
+
+  const i = parseInt(btn.dataset.charIdx);
+  if (score === 2) {
+    for (let j = 0; j < 3; j++) {
+      const p = document.querySelector(`[data-idx="${i * 3 + j}"]`);
+      p.dataset.score = '2';
+      p.className = 'color-btn color-2';
+    }
+  }
 }
 
 function submitFeedback() {
@@ -259,6 +251,7 @@ function submitFeedback() {
   if (!entry) return;
 
   const feedback = [];
+  const charScores = [];
   for (let i = 0; i < 4; i++) {
     const group = [];
     for (let j = 0; j < 3; j++) {
@@ -266,16 +259,43 @@ function submitFeedback() {
       group.push(parseInt(btn.dataset.score));
     }
     feedback.push(group);
+    const charBtn = document.querySelector(`[data-char-idx="${i}"]`);
+    charScores.push(parseInt(charBtn.dataset.charScore));
+  }
+
+  if (charScores.every(s => s === 2)) {
+    const card = document.getElementById('resultsCard');
+    card.style.display = '';
+    document.getElementById('resultCount').textContent = '';
+    document.getElementById('resultWords').innerHTML = `<span style="color:var(--green);font-weight:700">🎉 答案就是「${word}」！</span>`;
+    historyList.push({ word, scores: feedback.flat(), charScores });
+    renderHistory();
+    return;
   }
 
   const partNames = ['c', 'v', 't'];
   for (let i = 0; i < 4; i++) {
     const base = 1 + i * 3;
+    const pos = i + 1;
+    const ch = word[i];
+    const cs = charScores[i];
+
+    if (cs === 2) {
+      conditions.push(`ch${pos} = '${ch}'`);
+      continue;
+    }
+
+    if (cs === 0) {
+      conditions.push(`ch${pos} != '${ch}'`);
+    } else if (cs === 1) {
+      conditions.push(`ch${pos} != '${ch}'`);
+      conditions.push('(' + [1,2,3,4].filter(k => k !== pos).map(k => `ch${k} = '${ch}'`).join(' OR ') + ')');
+    }
+
     for (let j = 0; j < 3; j++) {
       const label = entry[base + j];
       const score = feedback[i][j];
       const pn = partNames[j];
-      const pos = i + 1;
 
       if (score === 0) {
         conditions.push(`${pn}${pos} != '${label}'`);
@@ -289,7 +309,7 @@ function submitFeedback() {
   }
 
   const colorScores = feedback.flat();
-  historyList.push({ word, scores: colorScores });
+  historyList.push({ word, scores: colorScores, charScores });
   renderHistory();
   filterCandidates();
 }
@@ -320,15 +340,21 @@ function filterCandidates() {
   }
 
   document.getElementById('pinyinGrid').classList.remove('active');
+  document.getElementById('inputCard').style.display = '';
   document.getElementById('wordInput').value = '';
 }
 
 function evalCondition(entry, cond) {
-  const m = cond.match(/^([cvt])(\d)\s*(!?=)\s*'(.+)'$/);
+  const m = cond.match(/^(ch|[cvt])(\d)\s*(!?=)\s*'(.+)'$/);
   if (!m) return true;
   const [, pn, pos, op, val] = m;
-  const idx = {c: 0, v: 1, t: 2}[pn] + (parseInt(pos) - 1) * 3 + 1;
-  const entryVal = entry[idx];
+  let entryVal;
+  if (pn === 'ch') {
+    entryVal = entry[0][parseInt(pos) - 1];
+  } else {
+    const idx = {c: 0, v: 1, t: 2}[pn] + (parseInt(pos) - 1) * 3 + 1;
+    entryVal = entry[idx];
+  }
   if (op === '=') return entryVal === val;
   return entryVal !== val;
 }
@@ -337,8 +363,10 @@ function renderHistory() {
   const el = document.getElementById('historySection');
   el.innerHTML = '<div class="history-title">猜测记录</div>' +
     historyList.map(h => {
-      const dots = h.scores.map(s => `<span class="history-dot dot-${s}"></span>`).join('');
-      return `<div class="history-item"><span class="history-word">${h.word}</span><span class="history-colors">${dots}</span></div>`;
+      const charDots = (h.charScores || []).map(s => `<span class="history-dot dot-${s}"></span>`).join('');
+      const pinyinDots = h.scores.map(s => `<span class="history-dot dot-${s}"></span>`).join('');
+      const separator = charDots ? '<span style="margin:0 3px;color:var(--text3)">|</span>' : '';
+      return `<div class="history-item"><span class="history-word">${h.word}</span><span class="history-colors">${charDots}${separator}${pinyinDots}</span></div>`;
     }).join('');
 }
 
